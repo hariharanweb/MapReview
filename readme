@@ -1,0 +1,13 @@
+To deploy the project
+
+- Install CouchDB.
+- Start Couch DB - sudo /etc/init.d/couchdb start
+- Create a new table in CouchDB
+	- GO to http://localhost:5984/_utils/
+	- click on Create Database...
+	- Give a name to table - 'mapreview' type in as it is... since webpage uses this name..
+
+- Create a folder ReviewMap in /usr/share/couchdb/www folder
+- Copy the contents of the folder to above create folder....
+- Visit http://localhost:5984/_utils/ReviewMap/mainPage.html in your browser to start using...
+
