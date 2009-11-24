@@ -1,0 +1,158 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Map, Preview and Review</title>
+
+<script type="text/javascript" src="http://www.google.com/jsapi?key=ABQIAAAAnfs7bKE82qgb3Zc2YyS-oBT2yXp_ZAY8_ufC3CFXhHIE1NvwkxSySz_REpPq-4WZA27OwgbtyR3VcA"></script>
+<script src="../script/couch.js" type="text/javascript"></script>
+<script src="../script/json.js" type="text/javascript"></script>
+<script src="jquery-1.3.2.js" type="text/javascript"></script>
+
+<script>
+	google.load("maps", "2");
+	
+	google.setOnLoadCallback(loadGoogleMaps);
+
+	var map;
+	var searchControl;
+	
+	function loadGoogleMaps() {
+
+		var mapOptions = {
+			googleBarOptions :{
+				listingTypes: G_GOOGLEBAR_TYPE_LOCALONLY_RESULTS,
+				suppressInitialResultSelection : true,
+				onGenerateMarkerHtmlCallback: onMarkerClickCallBack,
+			}
+		}
+
+		map = new google.maps.Map2(document.getElementById("map"),mapOptions);
+		map.addControl(new GLargeMapControl());
+	     	map.addControl(new google.maps.MapTypeControl());			
+		map.setCenter(new google.maps.LatLng(12.973446,77.585878), 13); //bangalore
+		map.enableGoogleBar();
+
+	}
+
+	onMarkerClickCallBack = function (marker, htmlString,result){
+		document.newReviewForm.submitReview.disabled = false;
+		displayReviews(result.titleNoFormatting);
+		return htmlString;
+	}
+
+	function displayReviews(reviewId){
+		clearOldReviews();
+		$(review).show();
+		document.newReviewForm.reviewID.value = reviewId;
+		CouchMapReview.displayAllReviews(reviewId);
+	}
+
+
+	var CouchMapReview = {
+		db: new CouchDB("mapreview"),
+		
+		displayAllReviews: function(reviewId) {			
+			var result = this.getReviewsFromDB(reviewId);
+			if(result){
+				this.addNewReviewToDisplay(result);
+			}
+  		},
+
+		getReviewsFromDB: function(reviewID){
+			var result = this.db.open(reviewID);
+			return result;
+		},
+
+		addNewReview: function(contentToAdd) {
+			this.db.save(contentToAdd);
+			this.addNewReviewToDisplay(contentToAdd);
+		},
+
+		addNewReviewToDisplay: function(result){
+			var op;
+			for(attr in result){
+				if( !(attr=='_id') && !(attr=='_rev') ){
+					op = "<b>"+attr+"</b><br>";
+					op+=result[attr];
+					var list_item = document.createElement("li");
+					list_item.innerHTML = op;
+					var listUI = document.getElementById("reviewList");
+    					listUI.insertBefore(list_item, listUI.firstChild);
+				}
+			}
+		}
+	
+	}
+
+	$(document).ready(function(){
+		$(newReviewDiv).hide();
+		$(review).hide();
+		$(newReviewForm).submit(function(){
+			clearOldReviews();
+			var reviewID = document.newReviewForm.reviewID.value;
+			var emailID = document.newReviewForm.emailId.value;
+			var commentToAdd = document.newReviewForm.commentArea.value;
+			var result = CouchMapReview.getReviewsFromDB(reviewID);
+
+			if(result == null){
+				result = new Object();
+				result['_id'] = reviewID;
+			}	
+			result[emailID] = commentToAdd;
+			CouchMapReview.addNewReview(result);
+
+			document.newReviewForm.emailId.value = "";
+			document.newReviewForm.commentArea.value = "";
+
+			$("a").show();
+			$(newReviewDiv).hide();
+			return false;
+		});
+
+		$("a").click(function(event){
+			$(newReviewDiv).show();
+			$(this).hide();
+     			event.preventDefault();
+   		});
+
+     	});
+
+	function clearOldReviews(){
+		$("#reviewList").find("li").each(function(i) {
+				$(this).remove();
+	 	});
+	}
+
+
+</script>
+</head>
+<body>
+
+	<div id="header" style="width: 100%">		
+		<h1>MaPReview</h1>
+	</div> 
+
+	<div id="content" style="width: 100%; height: 800px;">
+		<div id="map" style="width: 100%;height: 500px;border-style:solid;border-color:green;">
+		</div>
+		<div id="newReviewDiv">
+			<div id="newReview" style="border-style:solid;border-width:medium;">
+				Write your reviews here....<br />
+				<form action="" name="newReviewForm">
+					<input type="hidden" id="reviewID" name="reviewID"/>
+					Email ID:: <input type="text" id="emailId" name="emailId"/><br />
+					Your Review<br />
+					<textarea rows=3 cols=40 id="commentArea"> </textarea><br />
+					<input type="submit" id="submitReview" value="Add Review" disabled="true"/>
+				</form>
+			</div>
+		</div>
+		<div id="review" style="border-style:solid;border-width:medium;padding-top:10px;">			
+			<a id="addReviewLink" href="">Write a review</a> <br /><br />
+			<u><label id="readReviewsLabel" name="readReviewsLabel">Reviews</label></u>
+			<ul id="reviewList"></ul>
+		</div>
+
+	</div>
+</body>
+</html>
